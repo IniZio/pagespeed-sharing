@@ -6,9 +6,14 @@
     "export": "slidev export"
   },
   "dependencies": {
-    "@slidev/cli": "^0.3.1",
-    "@slidev/theme-default": "^0.3.1",
-    "@slidev/theme-seriph": "^0.3.1"
+    "@slidev/cli": "^0.14.1",
+    "@slidev/theme-apple-basic": "^0.14.0",
+    "echarts": "^5.1.1",
+    "slidev-theme-geist": "^0.4.0",
+    "vue-echarts": "^6.0.0-rc.5"
   },
-  "name": "pagespeed-sharing"
+  "name": "pagespeed-sharing",
+  "devDependencies": {
+    "@windicss/plugin-scrollbar": "^1.2.3"
+  }
 }

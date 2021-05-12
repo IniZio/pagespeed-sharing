@@ -1,0 +1,66 @@
+Hello, last several weeks we have been talking about things that have clear answers, for example
+all hail Tailwind, mind your pixels. This week we are gonna talk about something different, the Pagespeed hell
+
+Just a quick background, I work in the Village project. Its a marketplace which allows users to sell or buy items within distance. It has a mobile app for end users and a server-side rendered website for SEO.
+Last year we started trying to boost Pagespeed score, aiming for hopefully 100. We gained quite some progress but sadly got robbed by Pagespeed in the end.
+I know other projects have made similar attempts as well, and future projects probably will suffer similar problems as well, so just want to share my struggles,
+and hopefully get some feedbasks that I can learn from during Q&A.
+
+For those who might not know already, Pagespeed is how fast Google thinks your website is. You enter your url in the website, and it will apply tests and measurements,
+returning some issues it has found. If you fix those issues, you might somehow make your website faster.
+
+Now although it looks pretty comprehensive and useful, it doesn't seem to be greatly relied on. Like if we throw some well-known websites such as maybe ebay, medium, airbnb. 
+Tbh their score is mediocre at best, yet they are generating revenue just fine and the UX is pretty good.
+
+Then why are we still talking about Pagespeed? I think it points out the most critical issues of a website. Lets take Google I/O hosted last week as an example, 
+Their Pagespeed score is amazingly low, in fact someone wrote a blog https://jakearchibald.com/2021/io-site-perf/ on that pretty soon after the website launch. If we check the report, we will see in general what are causing issues. Some of these issues are easy to fix and have official answers, like ensure text remains visible during webfont load.
+`web.dev` also gave instructions how to fix it https://web.dev/font-display/. Others, not that easy even from the look at it. For example 'Minimize main-thread work', it simply means too much javascript
+
+There are few key metrics for PageSpeed v5, namely First contentful paint, First meanful paint, Largest contentful paint and Time to interactive. To better visualize it, lets look at it as a timeline. PageSpeed puts different markers in the render process from blank, first element, first content to Interactive.
+FCP means the first text or image, SI means the sum of loading time per element, LCP means largest element, TTI means event handlers are attached.
+
+Now that we know what issues we have, next is the how, which is the fun part. 
+
+On Day zero, I ran the pagespeed test on the homepage. Redlights were all over the place, and we basically got a U. The good news is, there is a lot of potential for improvement I guess.
+Now I know you may wonder, "wow the score has been that bad like forever?". No it wasn't. I was curious as well so I checked the issues for pagespeed-related, and the score was really good back then.
+So you know how much PageSpeed has evolved already.
+
+First off, check if anything screwed up. Just as rick has mentioned previous weekly sharing on Caching, if you mess up things like networking and caching, saving a few kilobytes here and there in frontend simply won't help. 
+I mean if your server crashes every 10 seconds the website won't possibly be functional, let alone fast. Thankfully the Village was developed by really knowledgable developeres
+like chunyin, louis and rocky. So things like CDN and server stability has been setup and handled. 
+
+Since I couldn't find things that were misconfigured, I continue with following items to improvement
+
+- Build tools
+- Assets optimizations
+- Lazy load
+- 3rd party elements
+
+When I first landed my hands on setting up the development environment, re-compiling development server took 15 minutes, so I updated webpack from v1 to v4. Upgrading the build tools bring a few immediate benefits.
+One is of course the build speed increased to 2-3 minutes. Another is tree-shaking, which reduced the bundle size from 7.5MB gzipped to 2MB. Obviously everyhing will break, and some modules like lodash will need
+a plugin to make them tree-shakable. But its worth the effort because on staging we got ~20 on mobile, and it opens up more optimization possibilities.
+
+Now that I don't have time for a cup of coffee between compiles, I could move on to other aspects. Images occupy the majority of downloaded files in a website, so you
+will want to minimize number of images on first render, especially on mobile. So you can use your own lazyload logis plus the lazyload attribute recommended by `web.dev`.
+Note that you should not lazyload the critical images such as top banners, since it will just make LCP even longer. It boosted the score by ~10, not as obvious as script because
+Pagespeed can't detect what images are not needed since they just measure the viewport, but it improves real-users experience a lot
+
+And the third is lazyload. Previously all scripts from other pages like item detail were included in one bundle, and we only want to include scripts we need.
+It can be pretty easily done with loadable-components if you don't screw up, which I did. Apparently because the modules become dynamic, browser thinks the bundle is different
+between server and client, and literally erases the dom and render instead. The thing is it is not visible in development because it will just diff normally.
+
+The fourth one is kind of opiniated and hard to validate, 3rd party elements. There are two types, one are invisible ones such as Tracking snippets and Social login.
+Others include Google map, Customer support widget and Ads. Its best to defer their execution until your main script is ready,
+without breaking the layout. For invisible ones, I found that simply `setTimeout` already works
+
+For those visible ones, be sure to reserve the space to avoid causing layout shifts.
+
+So after all the struggles, we peaked at 70+ on mobile and 95+ on desktop on May 19 2020. So is that a happily ever after? 
+Apparently no, because 1 weak after that PageSpeed decided to rollout v6 on May 27. The score plummeted to 20 for mobile, and 70 for desktop.
+
+So I was off to another attempt of PageSpeed. A comparison of the metrics here. You can see two new metrics: Largest Contentful paint and Total blocking time.
+Largest contentful paint means the single largest element , and total blocking time means the time difference between FCP and TTI. Basically
+their expectation of an average website changed from simply serving content to needing more user interations to be useful.
+
+Now the challege will be that we have to do everything possible to reduce script execution time so that it attaches the event handlers and idles faster. 
+
